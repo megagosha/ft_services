@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: influxdb-service
+spec:
+  type: ClusterIP
+  ports:
+    - name: influxdb
+      port: 8086
+  selector:
+    app: influxdb
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: influxdb-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/influxdb/data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: influxdb-pv-claim
+  labels:
+    app: influxdb
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: influxdb
+  labels:
+    app: influxdb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: influxdb
+  template:
+    metadata:
+      labels:
+        app: influxdb
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: influxdb
+          env:
+            - name: INFLUX_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: influxdb-secret
+            - name: INFLUX_PASS
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: influxdb-secret
+          image: influxdb-custom
+          imagePullPolicy: Never
+          #          securityContext:
+          #            privileged: true
+          ports:
+            - name: influxdb
+              containerPort: 8086
+          volumeMounts:
+            - name: influxdb-persistent-storage
+              mountPath: "/influxdata/data/"
+          livenessProbe:
+            tcpSocket:
+              port: 8086
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: influxdb-persistent-storage
+          persistentVolumeClaim:
+            claimName: influxdb-pv-claim

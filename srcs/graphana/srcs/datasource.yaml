@@ -1,0 +1,76 @@
+# # config file version
+apiVersion: 1
+
+ # list of datasources that should be deleted from the database
+#deleteDatasources:
+#   - name: Graphite
+#     orgId: 1
+
+ # list of datasources to insert/update depending
+ # on what's available in the database
+datasources:
+  - name: ftps_ds
+    type: influxdb
+    access: proxy
+    database: ftpsdb
+    user: $INFLUX_USER
+    secureJsonData:
+      password: $INFLUX_PASSWORD
+    url: http://influxdb-service:8086
+    jsonData:
+      httpMode: GET
+  - name: grafana_ds
+    type: influxdb
+    access: proxy
+    database: grafanadb
+    user: $INFLUX_USER
+    secureJsonData:
+      password: $INFLUX_PASSWORD
+    url: http://influxdb-service:8086
+    jsonData:
+      httpMode: GET
+  - name: influxdb_ds
+    type: influxdb
+    access: proxy
+    database: influxdb
+    user: $INFLUX_USER
+    password: $INFLUX_PASSWORD
+    url: http://influxdb-service:8086
+    jsonData:
+      httpMode: GET
+  - name: mysql_ds
+    type: influxdb
+    access: proxy
+    database: mysqldb
+    user: $INFLUX_USER
+    password: $INFLUX_PASSWORD
+    url: http://influxdb-service:8086
+    jsonData:
+      httpMode: GET
+  - name: nginx_ds
+    type: influxdb
+    access: proxy
+    database: nginxdb
+    user: $INFLUX_USER
+    password: $INFLUX_PASSWORD
+    url: http://influxdb-service:8086
+    jsonData:
+      httpMode: GET
+  - name: pma_ds
+    type: influxdb
+    access: proxy
+    database: pmadb
+    user: $INFLUX_USER
+    password: $INFLUX_PASSWORD
+    url: http://influxdb-service:8086
+    jsonData:
+      httpMode: GET
+  - name: wp_ds
+    type: influxdb
+    access: proxy
+    database: wpdb
+    user: $INFLUX_USER
+    password: $INFLUX_PASSWORD
+    url: http://influxdb-service:8086
+    jsonData:
+      httpMode: GET

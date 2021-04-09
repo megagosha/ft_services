@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wordpress-service
+  annotations:
+    metallb.universe.tf/allow-shared-ip: service_will_share_ip
+spec:
+  type: LoadBalancer
+  selector:
+    app: wordpress
+  ports:
+    - port: 5050
+      name: http
+      protocol: TCP
+      targetPort: 5050
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wordpress-deployment
+  labels:
+    app: wordpress
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wordpress
+  template:
+    metadata:
+      labels:
+        app: wordpress
+    spec:
+      containers:
+        - name: wordpress
+          image: wordpress-custom
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 5050
+          env:
+            - name: WP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: wp-secret
+            - name: WP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: wp-secret
+            - name: WP_ADMIN
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: wp-admin-secret
+            - name: WP_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: wp-admin-secret
+            - name: INFLUX_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: influxdb-secret
+            - name: INFLUX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: influxdb-secret
+          livenessProbe:
+            initialDelaySeconds: 60
+            timeoutSeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 6
+            httpGet:
+              path: /
+              scheme: HTTPS
+              port: 5050
+          readinessProbe:
+            initialDelaySeconds: 60
+            timeoutSeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 6
+            httpGet:
+              path: /
+              port: 5050
+              scheme: HTTPS

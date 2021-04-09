@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: graphana-service
+  annotations:
+    metallb.universe.tf/allow-shared-ip: service_will_share_ip
+spec:
+  type: LoadBalancer
+#  loadBalancerIP: 192.168.99.112
+  selector:
+    app: graphana
+  ports:
+    - port: 3000
+      name: http
+      protocol: TCP
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: graphana-deployment
+  labels:
+    app: graphana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: graphana
+  template:
+    metadata:
+      labels:
+        app: graphana
+    spec:
+      containers:
+        - name: graphana
+          image: graphana-custom
+          imagePullPolicy: Never
+          env:
+            - name: INFLUX_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: influxdb-secret
+            - name: INFLUX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: influxdb-secret
+          ports:
+            - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              scheme: HTTPS
+              port: 3000
+              httpHeaders:
+                - name: User-Agent
+                  value: MyUserAgent

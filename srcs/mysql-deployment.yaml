@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql
+spec:
+  type: ClusterIP
+  ports:
+    - name: mysql
+      port: 3306
+  selector:
+    app: mysql
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv-volume
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 1Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mysql/data"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: mysql-pv-claim
+  labels:
+    app: mysql
+spec:
+  storageClassName: manual
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mysql
+  labels:
+    app: mysql
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mysql
+  template:
+    metadata:
+      labels:
+        app: mysql
+    spec:
+      restartPolicy: Always
+      containers:
+        - name: mysql
+          env:
+            - name: WP_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: wp-secret
+            - name: WP_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: wp-secret
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: sql-secret
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: sql-secret
+            - name: PMA_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: pma-secret
+            - name: PMA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: pma-secret
+            - name: INFLUX_USER
+              valueFrom:
+                secretKeyRef:
+                  key: username
+                  name: influxdb-secret
+            - name: INFLUX_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: influxdb-secret
+          image: mysql-custom
+          imagePullPolicy: Never
+#          securityContext:
+#            privileged: true
+          ports:
+            - name: mysqlport
+              containerPort: 3306
+          volumeMounts:
+            - name: mysql-persistent-storage
+              mountPath: "/var/lib/mysql"
+          livenessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: mysql-persistent-storage
+          persistentVolumeClaim:
+            claimName: mysql-pv-claim
